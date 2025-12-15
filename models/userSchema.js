@@ -19,8 +19,8 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: String,
         selected: false,
-        minLength: [11, "Phone number must contain 11 digits"],
-        maxLength: [11, "Phone number must contain 11 digits"],
+        minLength: [10, "Phone number must contain 10 digits"],
+        maxLength: [10, "Phone number must contain 10 digits"],
     },
     profileImage: {
         public_id: {
@@ -39,7 +39,7 @@ const userSchema = new mongoose.Schema({
             bankName: String,
         },
         upi: {
-            upiId: String, // could be Google Pay / PhonePe / Paytm UPI ID
+            upi: String, // could be Google Pay / PhonePe / Paytm UPI ID
         },
         paypal: {
             paypalEmail: String,
@@ -63,6 +63,25 @@ const userSchema = new mongoose.Schema({
         createdAt: {
             type: Date,
             default: Date.now,
-        }
+        },
     },
 });
+
+userSchema.pre("save", async function(next){
+    if(!this.isModified("password")){
+        next();
+    }
+    this.password = await bcrypt.hash(this.password, 10);
+})
+
+
+userSchema.methods.comparePassword = async function(enteredPassword){
+    return await bcrypt.compare(enteredPassword, this.password);
+};
+
+userSchema.methods.generateJsonWebToken = function(){
+    return jwt.sign({id: this._id}, process.env.JWT_SECRET_KEY, {
+        expiresIn: process.env.JWT_EXPIRE,
+    });
+}
+export const User = mongoose.model('User', userSchema);
